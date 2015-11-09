@@ -26,18 +26,18 @@
 class interna {
   var ctx;
 
-	function interna( context ) {
-		this.ctx = context;
-	}
-	function init() {
-		this.ctx.interna_init();
-	}
-	function validateForm() {
-		return this.ctx.interna_validateForm();
-	}
-	function calculateField(fN) {
-		return this.ctx.interna_calculateField(fN);
-	}
+    function interna( context ) {
+        this.ctx = context;
+    }
+    function init() {
+        this.ctx.interna_init();
+    }
+    function validateForm() {
+        return this.ctx.interna_validateForm();
+    }
+    function calculateField(fN) {
+        return this.ctx.interna_calculateField(fN);
+    }
 }
 //// INTERNA /////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
@@ -46,18 +46,18 @@ class interna {
 //////////////////////////////////////////////////////////////////
 //// OFICIAL /////////////////////////////////////////////////////
 class oficial extends interna {
-	function oficial( context ) { 
-		interna( context ); 
-	} 
-	function bufferChanged(fN) { 
-		this.ctx.oficial_bufferChanged(fN); 
-	}
-	function commonCalculateField(fN, cursor) {
-		return this.ctx.oficial_commonCalculateField(fN, cursor);
-	}
-	function commonBufferChanged(fN, miForm) {
-		return this.ctx.oficial_commonBufferChanged(fN, miForm);
-	}
+    function oficial( context ) { 
+        interna( context ); 
+    } 
+    function bufferChanged(fN) { 
+        this.ctx.oficial_bufferChanged(fN); 
+    }
+    function commonCalculateField(fN, cursor) {
+        return this.ctx.oficial_commonCalculateField(fN, cursor);
+    }
+    function commonBufferChanged(fN, miForm) {
+        return this.ctx.oficial_commonBufferChanged(fN, miForm);
+    }
 }
 //// OFICIAL /////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
@@ -67,7 +67,7 @@ class oficial extends interna {
 //// DESARROLLO /////////////////////////////////////////////////
 class head extends oficial {
     function head( context ) { 
-    	oficial ( context ); 
+        oficial ( context ); 
     }
 }
 //// DESARROLLO /////////////////////////////////////////////////
@@ -78,13 +78,13 @@ class head extends oficial {
 //// INTERFACE  /////////////////////////////////////////////////
 class ifaceCtx extends head {
     function ifaceCtx( context ) { 
-    	head( context ); 
+        head( context ); 
     }
     function pub_commonBufferChanged(fN, miForm) {
-    	return this.commonBufferChanged(fN, miForm);
+        return this.commonBufferChanged(fN, miForm);
     }
     function pub_commonCalculateField(fN, cursor) {
-    	return this.commonCalculateField(fN, cursor);
+        return this.commonCalculateField(fN, cursor);
     }
 }
 
@@ -102,29 +102,32 @@ const iface = new ifaceCtx( this );
 
 function interna_init()
 {
-	var _i = this.iface;
-	var cursor = this.cursor();
-	
-	connect(cursor, "bufferChanged(QString)", _i, "bufferChanged");
-		
-	if(cursor.modeAccess() == cursor.Edit) {
-		this.child("fdbCodCliente").setDisabled(true);
-	}
+    var _i = this.iface;
+    var cursor = this.cursor();
+    
+    connect(cursor, "bufferChanged(QString)", _i, "bufferChanged");
+        
+    if(cursor.modeAccess() == cursor.Edit) {
+        this.child("fdbCodCliente").setDisabled(true);
+    }
+    else if(cursor.modeAccess() == cursor.Insert && cursor.valueBuffer("codcliente") != "") {
+        sys.setObjText(this,"fdbRefMandato",_i.commonCalculateField("refmandato",cursor));
+    }
 }
 
 function interna_calculateField(fN)
 {
-	var _i = this.iface;
-	var cursor = this.cursor();
-	
-	return _i.commonCalculateField(fN, cursor);
+    var _i = this.iface;
+    var cursor = this.cursor();
+    
+    return _i.commonCalculateField(fN, cursor);
 }
 
 function interna_validateForm()
 {
-	var cursor = this.cursor();
+    var cursor = this.cursor();
 
-	return true;
+    return true;
 }
 
 //// INTERNA /////////////////////////////////////////////////////
@@ -136,96 +139,107 @@ function interna_validateForm()
 
 function oficial_bufferChanged(fN)
 {
-	var _i = this.iface;
-	var cursor = this.cursor();
-	
-	switch (fN) {
-		default: {
-			_i.commonBufferChanged(fN, this);
-			break;
-		}
-	}
+    var _i = this.iface;
+    var cursor = this.cursor();
+    
+    switch (fN) {
+        default: {
+            _i.commonBufferChanged(fN, this);
+            break;
+        }
+    }
 }
 
 function oficial_commonCalculateField(fN, cursor)
 {
-	var _i = this.iface;
-	var valor;
-	
-	switch (fN) {
-		case "fechacaducidad": {
-			var fechaAnt;
-			fechaAnt = cursor.valueBuffer("fechaultadeudo");
-			if(!fechaAnt || fechaAnt == "") {
-				fechaAnt = cursor.valueBuffer("fechafirma");
-				if(!fechaAnt || fechaAnt == "") {
-					return false;
-				}
-			}
-			valor = AQUtil.addMonths(fechaAnt,36);
-			break;
-		}
-		case "refmandato": {
-			var codCliente = cursor.valueBuffer("codcliente");
-			
-			if(!codCliente || codCliente == "") {
-				return "";
-			}
-			
-			var qryMandatos = new FLSqlQuery();
-			qryMandatos.setSelect("refmandato");
-			qryMandatos.setFrom("mandatoscli");
-			qryMandatos.setWhere("refmandato LIKE '" + codCliente + "%' ORDER BY refmandato DESC LIMIT 1");
-			
-			if(!qryMandatos.exec()) {
-				return false;
-			}
-			
-			var numMandato;
-			
-			if(!qryMandatos.first()) {
-				numMandato = 0;
-			}
-			else {
-				var ultMandato = qryMandatos.value("refmandato");
-				ultMandato = ultMandato.substring(7);
-				numMandato = parseFloat(ultMandato);
-				
-				if(isNaN(numMandato)) {
-					return "";
-				}
-			}
-			numMandato++;
-			valor = flfacturac.iface.pub_cerosIzquierda(codCliente,6) + flfacturac.iface.pub_cerosIzquierda(numMandato, 29);
-			
-			break;
-		}
-	}
-	return valor;
+    var _i = this.iface;
+    var valor;
+    
+    switch (fN) {
+        case "fechacaducidad": {
+            var fechaAnt;
+            fechaAnt = cursor.valueBuffer("fechaultadeudo");
+            if(!fechaAnt || fechaAnt == "") {
+                fechaAnt = cursor.valueBuffer("fechafirma");
+                if(!fechaAnt || fechaAnt == "") {
+                    return false;
+                }
+            }
+            valor = AQUtil.addMonths(fechaAnt,36);
+            break;
+        }
+        case "refmandato": {
+            var codCliente = cursor.valueBuffer("codcliente");
+            
+            if(!codCliente || codCliente == "") {
+                return "";
+            }
+            
+            var qryMandatos = new FLSqlQuery();
+            qryMandatos.setSelect("refmandato");
+            qryMandatos.setFrom("mandatoscli");
+            qryMandatos.setWhere("refmandato LIKE '" + codCliente + "%' ORDER BY refmandato DESC LIMIT 1");
+            
+            if(!qryMandatos.exec()) {
+                return false;
+            }
+            
+            var numMandato;
+            
+            if(!qryMandatos.first()) {
+                numMandato = 0;
+            }
+            else {
+                var ultMandato = qryMandatos.value("refmandato");
+                ultMandato = ultMandato.substring(7);
+                numMandato = parseFloat(ultMandato);
+                
+                if(isNaN(numMandato)) {
+                    return "";
+                }
+            }
+            numMandato++;
+            valor = flfacturac.iface.pub_cerosIzquierda(codCliente,6) + flfacturac.iface.pub_cerosIzquierda(numMandato, 29);
+            
+            break;
+        }
+        case "numefectos" : {
+            var pagos = AQUtil.sqlSelect("pagosdevolcli", "count(idpagodevol)", "idmandato = " + cursor.valueBuffer("idmandato") + " AND tipo = 'Pago'");
+            var devol = AQUtil.sqlSelect("pagosdevolcli", "count(idpagodevol)", "idmandato = " + cursor.valueBuffer("idmandato") + " AND tipo = 'Devolución'");
+            
+            pagos = isNaN(pagos) ? 0 : pagos;
+            devol = isNaN(devol) ? 0 : devol;
+            
+            valor = pagos - devol;
+            valor = isNaN(valor) || valor < 0 ? 0 : valor;
+            break;
+        }
+    }
+    return valor;
 }
 
 function oficial_commonBufferChanged(fN, miForm)
 {
-	var _i = this.iface;
-	var cursor = miForm.cursor();
+    var _i = this.iface;
+    var cursor = miForm.cursor();
 
-	switch(fN) {
-		case "fechafirma": {
-			sys.setObjText(miForm,"fdbFechaCaducidad",_i.commonCalculateField("fechacaducidad",cursor));
-			break;
-		}
-		case "fechaultadeudo": {
-			sys.setObjText(miForm,"fdbFechaCaducidad",_i.commonCalculateField("fechacaducidad",cursor));
-			break;
-		}
-		case "codcliente": {
-			sys.setObjText(miForm,"fdbRefMandato",_i.commonCalculateField("refmandato",cursor));
-			break;
-		}
-		default: {
-			break;
-		}
-	}
+    switch(fN) {
+        case "fechafirma": {
+            sys.setObjText(miForm,"fdbFechaCaducidad",_i.commonCalculateField("fechacaducidad",cursor));
+            break;
+        }
+        case "fechaultadeudo": {
+            sys.setObjText(miForm,"fdbFechaCaducidad",_i.commonCalculateField("fechacaducidad",cursor));
+            break;
+        }
+        case "codcliente": {
+            sys.setObjText(miForm,"fdbRefMandato",_i.commonCalculateField("refmandato",cursor));
+            break;
+        }
+        default: {
+            break;
+        }
+    }
 }
 
 //// OFICIAL /////////////////////////////////////////////////////
